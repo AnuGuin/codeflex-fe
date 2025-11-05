@@ -9,17 +9,19 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
-  MessageSquare,
   TrendingUp,
   FileText,
   LogOut,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/ui/logo";
 import LinkPage from "@/components/main/link-page";
 import { UserDashboard } from "@/components/main/user-dashboard";
+import HintComponent from "@/components/main/hint";
 import { getUserProfile, clearUserData, clearSessionData } from "@/lib/api";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NotesPage } from '@/components/main/notes';
 
 export default function MainPage() {
   const router = useRouter();
@@ -37,7 +39,7 @@ export default function MainPage() {
   const links = useMemo(
     () => [
       { label: "Dashboard", href: "#dashboard", icon: <LayoutDashboard className="h-5 w-5" />, onClick: () => setActiveSection("dashboard") },
-      { label: "Chatbot", href: "#chatbot", icon: <MessageSquare className="h-5 w-5" />, onClick: () => setActiveSection("chatbot") },
+      { label: "Hint", href: "#hint", icon: <Lightbulb className="h-5 w-5" />, onClick: () => setActiveSection("hint") },
       { label: "Progress", href: "#progress", icon: <TrendingUp className="h-5 w-5" />, onClick: () => setActiveSection("progress") },
       { label: "Notes", href: "#notes", icon: <FileText className="h-5 w-5" />, onClick: () => setActiveSection("notes") },
     ],
@@ -126,12 +128,14 @@ export default function MainPage() {
     switch (activeSection) {
       case "dashboard":
         return <UserDashboard {...userData} />;
+      case "hint":
+        return <HintComponent />;
       case "chatbot":
         return <div className="flex-1 flex items-center justify-center">Chatbot Coming Soon</div>;
       case "progress":
         return <div className="flex-1 flex items-center justify-center">Progress Coming Soon</div>;
       case "notes":
-        return <div className="flex-1 flex items-center justify-center">Notes Coming Soon</div>;
+        return <NotesPage notes={[]} onEdit={() => {}} onDelete={() => {}} />; // Render NotesPage
       default:
         return <UserDashboard {...userData} />;
     }

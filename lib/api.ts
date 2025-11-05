@@ -27,7 +27,7 @@ export async function registerUser(data: {
   email: string;
   password: string;
 }) {
-  clearSessionData(); // Clear old user data before new registration
+  clearSessionData();
 
   const res = await fetch(`${API_URL}/register`, {
     method: "POST",
@@ -45,7 +45,7 @@ export async function registerUser(data: {
 }
 
 export async function loginUser(data: { email: string; password: string }) {
-  clearSessionData(); // Clear old user data before new login
+  clearSessionData();
 
   const res = await fetch(`${API_URL}/login`, {
     method: "POST",
@@ -80,8 +80,7 @@ export async function getUserProfile(userId: string) {
     }
 
     return await res.json();
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
+  } catch {
     return {
       success: false,
       data: null,
@@ -103,8 +102,7 @@ export async function linkCodeforcesAccount(data: { userId: string; handle: stri
       }),
     });
     return await res.json();
-  } catch (error) {
-    console.error("Error linking Codeforces account:", error);
+  } catch {
     return { success: false, error: "Failed to link Codeforces account" };
   }
 }
@@ -120,8 +118,7 @@ export async function linkCodechefAccount(data: { userId: string; handle: string
       }),
     });
     return await res.json();
-  } catch (error) {
-    console.error("Error linking Codechef account:", error);
+  } catch {
     return { success: false, error: "Failed to link Codechef account" };
   }
 }
@@ -135,7 +132,7 @@ export async function refreshCodeforcesData(userId: string) {
       headers: { "Content-Type": "application/json" },
     });
     return await res.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to refresh Codeforces data" };
   }
 }
@@ -147,7 +144,7 @@ export async function refreshCodechefData(userId: string) {
       headers: { "Content-Type": "application/json" },
     });
     return await res.json();
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to refresh Codechef data" };
   }
 }
@@ -165,5 +162,13 @@ export async function unlinkCodechefAccount(userId: string) {
   const res = await fetch(`${API_URL}/unlink-codechef/${userId}`, {
     method: "DELETE",
   });
+  return await res.json();
+}
+
+
+/* ---------------------------- NEW PROFILE FETCH FOR PYTHON BACKEND ---------------------------- */
+
+export async function fetchUserPlatformProfile(platform: "codeforces" | "codechef", username: string) {
+  const res = await fetch(`${API_BASE_URL}/api/profile/${platform}/${username}`);
   return await res.json();
 }
