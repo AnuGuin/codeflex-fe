@@ -6,17 +6,17 @@ export type LogoProps = {
   className?: string;
   textClassName?: string;
   gap?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  /** When true, the wordmark is visually hidden but remains mounted to avoid remount flicker */
+  hideText?: boolean;
 };
 
-/**
- * Logo component: Tabler donut chart icon + "CodeFlex" label with dark/light mode support.
- */
-export default function Logo({
+function Logo({
   size = 24,
   text = "CodeFlex",
   className = "",
   textClassName = "",
   gap = 3,
+  hideText = false,
 }: LogoProps) {
   const dimension = typeof size === "number" ? `${size}px` : size;
   const gapClass = `gap-${gap}`;
@@ -48,10 +48,14 @@ export default function Logo({
 
       {/* Wordmark with theme-aware color */}
       <span
-        className={`font-semibold tracking-tight text-gray-800 dark:text-gray-100 transition-colors duration-300 ${textClassName}`.trim()}
+        className={`font-semibold tracking-tight text-gray-800 dark:text-gray-100 transition-all duration-200 ${
+          hideText ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+        } ${textClassName}`.trim()}
       >
         {text}
       </span>
     </div>
   );
 }
+
+export default React.memo(Logo);

@@ -5,81 +5,71 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Logo from './logo'
-import { registerUser } from '@/lib/api'
+import { loginUser } from '@/lib/api'
 
-export default function SignupPage() {
-  const [firstname, setFirstname] = useState('')
-  const [lastname, setLastname] = useState('')
-  const [username, setUsername] = useState('')
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
 
-    const res = await registerUser({
-      username: `${firstname} ${lastname}` || username,
-      email: username, // field label says username but backend expects 'email'
-      password,
-    })
-
-    if (res?.statusCode === 201) {
-      setMessage('✅ Account created successfully! You can now sign in.')
+    const res = await loginUser({ email, password })
+    if (res?.statusCode === 200) {
+      setMessage('✅ Login successful!')
+      // Store token
+      const token = res?.data?.token || res?.token || 'dummy-token';
+      localStorage.setItem('token', token)
+      
+      // Store user data
+      const userData = res?.data?.user || res?.user;
+      if (userData) {
+        localStorage.setItem('email', userData.email || email)
+        localStorage.setItem('username', userData.username || userData.name || email.split('@')[0])
+      } else {
+        // Fallback if user data is not in response
+        localStorage.setItem('email', email)
+        localStorage.setItem('username', email.split('@')[0])
+      }
+      
+      // Small delay to ensure localStorage is written before navigation
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Navigate to main page
+      router.push('/main')
     } else {
-      setMessage(`❌ ${res?.message || 'Something went wrong.'}`)
+      setMessage(`❌ ${res?.message || 'Invalid credentials'}`)
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
-    <section className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-8 dark:bg-transparent">
+    <section className="flex min-h-screen bg-zinc-50 px-4 py-16 md:py-32 dark:bg-transparent">
       <form
-        onSubmit={handleSubmit}
-        className="h-fit w-full max-w-sm rounded-[calc(var(--radius)+.125rem)] border p-0.5 shadow-md bg-white/70 dark:bg-zinc-900/70 backdrop-blur-lg"
+        onSubmit={handleLogin}
+        className="m-auto h-fit w-full max-w-sm rounded-[calc(var(--radius)+.125rem)] border p-0.5 shadow-md bg-white/70 dark:bg-zinc-900/70 backdrop-blur-lg"
       >
         <div className="p-8 pb-6">
           <div>
             <Link href="/" aria-label="go home">
               <Logo />
             </Link>
-            <h1 className="mb-1 mt-4 text-xl font-semibold">Sign up</h1>
-            <p className="text-sm">Welcome! Create an account to get started</p>
+            <h1 className="mb-1 mt-4 text-xl font-semibold">
+              Sign In to Codeflex
+            </h1>
+            <p className="text-sm">Welcome back! Sign in to continue</p>
           </div>
 
           <hr className="my-4 border-dashed" />
 
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="firstname" className="block text-sm">
-                  Firstname
-                </Label>
-                <Input
-                  type="text"
-                  required
-                  id="firstname"
-                  value={firstname}
-                  onChange={(e) => setFirstname(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastname" className="block text-sm">
-                  Lastname
-                </Label>
-                <Input
-                  type="text"
-                  required
-                  id="lastname"
-                  value={lastname}
-                  onChange={(e) => setLastname(e.target.value)}
-                />
-              </div>
-            </div>
-
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="block text-sm">
                 Username
@@ -88,15 +78,25 @@ export default function SignupPage() {
                 type="email"
                 required
                 id="email"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pwd" className="text-sm">
-                Password
-              </Label>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="pwd" className="text-sm">
+                  Password
+                </Label>
+                <Button asChild variant="link" size="sm">
+                  <Link
+                    href="#"
+                    className="link intent-info variant-ghost text-sm"
+                  >
+                    Forgot your Password ?
+                  </Link>
+                </Button>
+              </div>
               <Input
                 type="password"
                 required
@@ -107,7 +107,7 @@ export default function SignupPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Continue'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
 
             {message && (
@@ -120,9 +120,9 @@ export default function SignupPage() {
 
         <div className="bg-muted rounded-(--radius) border p-3">
           <p className="text-accent-foreground text-center text-sm">
-            Have an account ?
+            Don&apos;t have an account ?
             <Button asChild variant="link" className="px-2">
-              <Link href="/auth?mode=login">Sign In</Link>
+              <Link href="/auth?mode=signup">Create account</Link>
             </Button>
           </p>
         </div>

@@ -88,11 +88,13 @@ export const DesktopSidebar = ({
     <>
       <motion.div
         className={cn(
-          "h-full px-4 py-4 hidden  md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] shrink-0",
+          "h-full px-4 py-4 hidden md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] shrink-0 box-border",
           className
         )}
         animate={{
-          width: animate ? (open ? "300px" : "60px") : "300px",
+          width: animate ? (open ? "300px" : "80px") : "300px",
+          paddingLeft: animate ? (open ? 16 : 8) : 16,
+          paddingRight: animate ? (open ? 16 : 8) : 16,
         }}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
@@ -135,7 +137,7 @@ export const MobileSidebar = ({
                 ease: "easeInOut",
               }}
               className={cn(
-                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-50 flex flex-col justify-between",
                 className
               )}
             >
@@ -154,7 +156,7 @@ export const MobileSidebar = ({
   );
 };
 
-export const SidebarLink = ({
+const SidebarLinkComponent = ({
   link,
   className,
   ...props
@@ -167,7 +169,8 @@ export const SidebarLink = ({
     <a
       href={link.href}
       className={cn(
-        "flex items-center justify-start gap-2  group/sidebar py-2",
+        "flex items-center gap-2 group/sidebar py-2 rounded-md w-full",
+        open ? "justify-start" : "justify-center",
         className
       )}
       {...props}
@@ -179,10 +182,12 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block"
       >
         {link.label}
       </motion.span>
     </a>
   );
 };
+
+export const SidebarLink = React.memo(SidebarLinkComponent);
