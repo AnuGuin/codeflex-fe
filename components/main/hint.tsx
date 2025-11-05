@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Lightbulb, Send, ChevronRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Lightbulb, Send, ChevronRight, StickyNote } from "lucide-react";
 
 interface Hint {
   hint: string;
@@ -15,6 +22,7 @@ export default function HintComponent() {
   const [link, setLink] = useState("");
   const [hints, setHints] = useState<Hint[]>([]);
   const [currentHintIndex, setCurrentHintIndex] = useState(-1);
+  const [hintsClicked, setHintsClicked] = useState<number[]>([]);
   const [chatMessages, setChatMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string }>
   >([]);
@@ -22,37 +30,26 @@ export default function HintComponent() {
   const [isLoading, setIsLoading] = useState(false);
   const [notFound, setNotFound] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const { toast } = useToast();
 
   function parseHintsFromText(text: string): Hint[] {
     try {
-      // First, try to parse as JSON array
-      const block = text.match(/(?:json)?\s*(\[[\s\S]*?\])\s*/);
-      const jsonStr = block ? block[1] : text.match(/(\[[\s\S]*?\])/ )?.[1];
+      const block = text.match(/(?:json)?\s*(\[[\s\S]*?\])\s/);
+      const jsonStr = block ? block[1] : text.match(/(\[[\s\S]*?\])/)?.[1];
       if (jsonStr) {
         return JSON.parse(jsonStr.trim());
       }
 
-      // If not JSON, parse markdown-style hints
       const hints: Hint[] = [];
-      
-      // Split by the ### Hint pattern
       const hintSections = text.split(/###\s*Hint\s*\d+/i);
-      
-      // Skip the first element (text before first hint) and process the rest
+
       for (let i = 1; i < hintSections.length; i++) {
         const hintContent = hintSections[i].trim();
-        if (hintContent) {
-          hints.push({ hint: hintContent });
-        }
+        if (hintContent) hints.push({ hint: hintContent });
       }
 
-      if (hints.length > 0) {
-        console.log(`Successfully parsed ${hints.length} hints`);
-        return hints;
-      }
-
-      // If no structured format found, return the whole text as a single hint
-      console.warn("Could not parse hints in expected format, returning as single hint");
+      if (hints.length > 0) return hints;
       return [{ hint: text }];
     } catch (error) {
       console.error("Error parsing hints:", error);
@@ -74,13 +71,13 @@ export default function HintComponent() {
 
       const data = await res.json();
       if (!res.ok) {
-        console.error("Error fetching hints:", data);
         setNotFound(data.error || "Could not fetch hints");
       } else {
         const parsed = parseHintsFromText(data.generated_hints);
         if (parsed && parsed.length > 0) {
           setHints(parsed);
-          setCurrentHintIndex(0); // Show first hint automatically
+          setCurrentHintIndex(0);
+          setHintsClicked([0]); // track first hint as clicked
         } else {
           setNotFound("No valid hints found in the response.");
         }
@@ -94,7 +91,9 @@ export default function HintComponent() {
 
   const handleShowNextHint = () => {
     if (currentHintIndex < hints.length - 1) {
-      setCurrentHintIndex(currentHintIndex + 1);
+      const nextIndex = currentHintIndex + 1;
+      setCurrentHintIndex(nextIndex);
+      setHintsClicked((prev) => [...prev, nextIndex]);
     }
   };
 
@@ -127,6 +126,22 @@ export default function HintComponent() {
     }
   };
 
+  const handleSaveNote = (noteText: string) => {
+    const existingNotes = JSON.parse(localStorage.getItem("notes") || "[]");
+    const newNote = {
+      id: Date.now().toString(),
+      title: `Note ${existingNotes.length + 1}`, // ✅ fixed string interpolation
+      content: noteText,
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem("notes", JSON.stringify([...existingNotes, newNote]));
+
+    toast({
+      title: "Note Saved",
+      description: "Your note has been added to your notes list.",
+    });
+  };
+
   return (
     <div className="flex-1 w-full overflow-y-auto">
       <Card className="p-6 mb-8 border-border bg-card">
@@ -155,6 +170,7 @@ export default function HintComponent() {
 
       {hints?.length > 0 && (
         <div className="grid lg:grid-cols-2 gap-6">
+          {/* Hints Section */}
           <Card className="p-6 border-border bg-card">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">Generated Hints</h3>
@@ -190,8 +206,24 @@ export default function HintComponent() {
                 <p className="text-primary font-medium">All hints revealed!</p>
               </div>
             )}
+
+            {/* Add Note Button */}
+            <Button
+              onClick={() => setIsNoteModalOpen(true)}
+              variant="secondary"
+              className="w-full mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+            >
+              <StickyNote className="w-4 h-4 mr-2" /> Add Note
+            </Button>
+
+            <NoteModal
+              open={isNoteModalOpen}
+              onOpenChange={setIsNoteModalOpen}
+              onSave={handleSaveNote}
+            />
           </Card>
 
+          {/* AI Assistant Section */}
           <Card className="p-6 border-border bg-card flex flex-col h-[600px]">
             <h3 className="text-xl font-bold mb-4">AI Assistant</h3>
             <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
@@ -241,5 +273,76 @@ export default function HintComponent() {
         </div>
       )}
     </div>
+  );
+}
+
+function NoteModal({
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (noteText: string) => void;
+}) {
+  const [note, setNote] = React.useState("");
+  const { toast } = useToast();
+
+  const handleSaveNote = () => {
+    if (!note.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Empty Note",
+        description: "Please write something before saving.",
+      });
+      return;
+    }
+
+    onSave(note);
+    setNote("");
+    onOpenChange(false);
+  };
+
+  const handleClose = () => {
+    setNote("");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-lg p-6 rounded-2xl border border-zinc-600/30 bg-zinc-900/90 backdrop-blur-md shadow-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-zinc-100">
+            <StickyNote className="w-5 h-5 text-yellow-400" />
+            Add a Note
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-4">
+          <Textarea
+            placeholder="Write your note here..."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="min-h-[120px] resize-none bg-zinc-800 text-zinc-100 border-zinc-600"
+          />
+        </div>
+
+        <div className="flex justify-between pt-4 border-t border-zinc-700/40">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700/40"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveNote}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+          >
+            Save Note
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

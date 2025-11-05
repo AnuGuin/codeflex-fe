@@ -1,93 +1,101 @@
 "use client";
 
 import React, { useState } from "react";
-import { Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, CheckCircle, Circle } from "lucide-react";
 
 interface Note {
   id: string;
   title: string;
   content: string;
   createdAt?: string;
+  completed?: boolean;
 }
 
-interface NotesPageProps {
-  notes: Note[];
-  onEdit: (note: Note) => void;
-  onDelete: (noteId: string) => void;
-}
+export default function NotesPage() {
+  const [notes, setNotes] = useState<Note[]>(() => {
+    // Initialize state from localStorage
+    try {
+      const storedNotes = localStorage.getItem("notes");
+      if (storedNotes) {
+        const parsed = JSON.parse(storedNotes);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (error) {
+      console.error("Error parsing notes from localStorage:", error);
+    }
+    return [];
+  });
 
-export const NotesPage: React.FC<NotesPageProps> = ({ notes, onEdit, onDelete }) => {
-  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
+  // ✅ Toggle completion status
+  const toggleComplete = (id: string) => {
+    const updated = notes.map((note) =>
+      note.id === id ? { ...note, completed: !note.completed } : note
+    );
+    setNotes(updated);
+    localStorage.setItem("notes", JSON.stringify(updated));
+  };
 
-  const toggleExpand = (id: string) => {
-    setExpandedNoteId(expandedNoteId === id ? null : id);
+  // ✅ Delete note
+  const deleteNote = (id: string) => {
+    const updated = notes.filter((note) => note.id !== id);
+    setNotes(updated);
+    localStorage.setItem("notes", JSON.stringify(updated));
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-20">
-      <div className="text-center mb-12">
-        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 dark:text-white mb-4">
-          My Notes
-        </h2>
-        <p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
-          View, edit, or delete your saved notes for future reference.
-        </p>
-      </div>
+    <div className="w-full max-w-5xl mx-auto px-4 py-20">
+      <h2 className="text-4xl font-bold text-center mb-8">🗒 My Notes</h2>
 
       {notes.length === 0 ? (
         <p className="text-center text-neutral-500 dark:text-neutral-400">
           You haven&apos;t saved any notes yet.
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {notes.map((note) => {
-            const isExpanded = expandedNoteId === note.id;
-            return (
+        <div className="space-y-4">
+          {notes.map((note) => (
+            <div
+              key={note.id}
+              className={`flex items-center justify-between p-4 rounded-xl shadow-md border transition-all duration-200 ${
+                note.completed
+                  ? "bg-green-100 dark:bg-green-900/30 line-through opacity-70"
+                  : "bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700/50"
+              }`}
+            >
+              {/* Note Content */}
               <div
-                key={note.id}
-                className="bg-white dark:bg-neutral-800 rounded-2xl shadow-md p-6 hover:shadow-xl transition-shadow cursor-pointer"
+                className="flex items-center gap-3 cursor-pointer select-none"
+                onClick={() => toggleComplete(note.id)}
               >
-                <div
-                  className="flex justify-between items-center"
-                  onClick={() => toggleExpand(note.id)}
-                >
-                  <h3 className="text-xl font-semibold text-neutral-900 dark:text-white">
-                    {note.title}
-                  </h3>
-                  {isExpanded ? (
-                    <ChevronUp className="text-neutral-600 dark:text-neutral-300" />
-                  ) : (
-                    <ChevronDown className="text-neutral-600 dark:text-neutral-300" />
+                {note.completed ? (
+                  <CheckCircle className="text-green-500 transition-transform duration-200 scale-110" />
+                ) : (
+                  <Circle className="text-gray-400 hover:text-gray-500 transition-colors" />
+                )}
+                <div>
+                  <h3 className="font-semibold text-lg">{note.title}</h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300 wrap-break-word max-w-xl">
+                    {note.content}
+                  </p>
+                  {note.createdAt && (
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                      {new Date(note.createdAt).toLocaleString()}
+                    </p>
                   )}
                 </div>
-
-                {isExpanded && (
-                  <div className="mt-4 space-y-4">
-                    <p className="text-neutral-700 dark:text-neutral-300 whitespace-pre-line">
-                      {note.content}
-                    </p>
-
-                    <div className="flex justify-end space-x-4">
-                      <button
-                        onClick={() => onEdit(note)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                      >
-                        <Edit2 size={16} /> Edit
-                      </button>
-                      <button
-                        onClick={() => onDelete(note.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                      >
-                        <Trash2 size={16} /> Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
-            );
-          })}
+
+              {/* Delete Button */}
+              <button
+                onClick={() => deleteNote(note.id)}
+                className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full"
+                title="Delete note"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
-};
+}

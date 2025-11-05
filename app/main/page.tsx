@@ -21,7 +21,8 @@ import { UserDashboard } from "@/components/main/user-dashboard";
 import HintComponent from "@/components/main/hint";
 import { getUserProfile, clearUserData, clearSessionData } from "@/lib/api";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { NotesPage } from '@/components/main/notes';
+import NotesPage from '@/components/main/notes';
+import ProgressTracker from '@/components/main/progress';
 
 export default function MainPage() {
   const router = useRouter();
@@ -133,9 +134,9 @@ export default function MainPage() {
       case "chatbot":
         return <div className="flex-1 flex items-center justify-center">Chatbot Coming Soon</div>;
       case "progress":
-        return <div className="flex-1 flex items-center justify-center">Progress Coming Soon</div>;
+        return <ProgressTracker />;
       case "notes":
-        return <NotesPage notes={[]} onEdit={() => {}} onDelete={() => {}} />; // Render NotesPage
+        return <NotesPage />;
       default:
         return <UserDashboard {...userData} />;
     }
